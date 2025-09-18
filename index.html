@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Gacha</title>
+  <title>LOS COMPASITOS GACHA</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -10,13 +10,18 @@
       color: white;
       display: flex;
       justify-content: center;
-      align-items: center;
+      align-items: flex-start;
       height: 100vh;
       flex-direction: column;
+      padding-top: 30px;
     }
 
     h1 {
       margin-bottom: 20px;
+      text-align: center;
+      font-size: 2em;
+      color: gold;
+      text-shadow: 2px 2px 4px black;
     }
 
     #resultado {
@@ -36,6 +41,7 @@
       background: #4CAF50;
       color: white;
       transition: 0.3s;
+      align-self: center;
     }
 
     button:disabled {
@@ -48,18 +54,46 @@
     }
 
     .Comun { color: lightgray; }
-    .Raro { color: deepskyblue; }
-    .Mítico { color: gold; font-weight: bold; }
+    .Raro { color: purple; }
+    .Mítico { color: red; font-weight: bold; }
+
+    #historial {
+      margin-top: 30px;
+      max-height: 200px;
+      overflow-y: auto;
+      border-top: 1px solid white;
+      padding-top: 10px;
+    }
+
+    #historial h2 {
+      margin-bottom: 10px;
+      font-size: 1.2em;
+    }
+
+    #historial ul {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    #historial li {
+      margin-bottom: 5px;
+      font-size: 1em;
+    }
   </style>
 </head>
 <body>
-  <h1>🎰 Gacha</h1>
+  <h1>LOS COMPASITOS GACHA</h1>
   <button id="btnGirar" onclick="girar()">Girar</button>
   <div id="resultado"></div>
   <div id="cooldownMsg"></div>
 
+  <div id="historial">
+    <h2>Historial de tus premios:</h2>
+    <ul id="historial-list"></ul>
+  </div>
+
   <script>
-    const cooldown = 30 * 60 * 1000; // 30 minutos en ms
+    const cooldown = 30 * 60 * 1000; // 30 minutos
 
     function girar() {
       let lastSpin = localStorage.getItem("lastSpin");
@@ -72,10 +106,8 @@
         return;
       }
 
-      // Guardar tiempo del giro
       localStorage.setItem("lastSpin", now);
 
-      // Objetos con rareza y probabilidad
       const items = [
         { nombre: "Sticker", rareza: "Comun", prob: 0.4899 },
         { nombre: "Nada", rareza: "Comun", prob: 0.4899 },
@@ -95,23 +127,42 @@
         }
       }
 
+      // Mostrar resultado
       let div = document.getElementById("resultado");
       div.innerHTML = `🎁 Has obtenido: <span class="${resultado.rareza}">${resultado.nombre}</span> (${resultado.rareza})`;
-
       document.getElementById("cooldownMsg").innerText = "⏳ Podrás girar de nuevo en 30 minutos.";
+
+      // Guardar historial en localStorage
+      let historial = JSON.parse(localStorage.getItem("historialGacha") || "[]");
+      historial.unshift({ nombre: resultado.nombre, rareza: resultado.rareza, fecha: new Date().toLocaleString() });
+      localStorage.setItem("historialGacha", JSON.stringify(historial));
+
+      // Actualizar historial en pantalla
+      mostrarHistorial();
     }
 
-    // Revisar al cargar si está en cooldown
+    function mostrarHistorial() {
+      let historial = JSON.parse(localStorage.getItem("historialGacha") || "[]");
+      let lista = document.getElementById("historial-list");
+      lista.innerHTML = "";
+      historial.forEach(item => {
+        let li = document.createElement("li");
+        li.innerHTML = `[${item.fecha}] <span class="${item.rareza}">${item.nombre}</span> (${item.rareza})`;
+        lista.appendChild(li);
+      });
+    }
+
     window.onload = function() {
+      // Revisar cooldown
       let lastSpin = localStorage.getItem("lastSpin");
       if (lastSpin) {
         let now = Date.now();
         if (now - lastSpin < cooldown) {
           let restante = Math.ceil((cooldown - (now - lastSpin)) / 60000);
-          document.getElementById("cooldownMsg").innerText = 
-            "⏳ Espera " + restante + " minutos para volver a girar.";
+          document.getElementById("cooldownMsg").innerText = "⏳ Espera " + restante + " minutos para volver a girar.";
         }
       }
+      mostrarHistorial();
     }
   </script>
 </body>
