@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Gacha</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #1a1a1a, #333);
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      flex-direction: column;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+    }
+
+    #resultado {
+      margin-top: 20px;
+      font-size: 1.5em;
+      padding: 15px;
+      border-radius: 10px;
+      text-align: center;
+    }
+
+    button {
+      padding: 15px 30px;
+      font-size: 1.2em;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      background: #4CAF50;
+      color: white;
+      transition: 0.3s;
+    }
+
+    button:disabled {
+      background: gray;
+      cursor: not-allowed;
+    }
+
+    button:hover:enabled {
+      background: #45a049;
+    }
+
+    .Comun { color: lightgray; }
+    .Raro { color: deepskyblue; }
+    .Mítico { color: gold; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>🎰 Gacha</h1>
+  <button id="btnGirar" onclick="girar()">Girar</button>
+  <div id="resultado"></div>
+  <div id="cooldownMsg"></div>
+
+  <script>
+    const cooldown = 30 * 60 * 1000; // 30 minutos en ms
+
+    function girar() {
+      let lastSpin = localStorage.getItem("lastSpin");
+      let now = Date.now();
+
+      if (lastSpin && now - lastSpin < cooldown) {
+        let restante = Math.ceil((cooldown - (now - lastSpin)) / 60000);
+        document.getElementById("cooldownMsg").innerText = 
+          "⏳ Espera " + restante + " minutos para volver a girar.";
+        return;
+      }
+
+      // Guardar tiempo del giro
+      localStorage.setItem("lastSpin", now);
+
+      // Objetos con rareza y probabilidad
+      const items = [
+        { nombre: "Sticker", rareza: "Comun", prob: 0.4899 },
+        { nombre: "Nada", rareza: "Comun", prob: 0.4899 },
+        { nombre: "Ayuda con algo", rareza: "Raro", prob: 0.01 },
+        { nombre: "Fruta Perma en Invierno", rareza: "Mítico", prob: 0.0001 }
+      ];
+
+      let rand = Math.random();
+      let acumulado = 0;
+      let resultado;
+
+      for (let item of items) {
+        acumulado += item.prob;
+        if (rand <= acumulado) {
+          resultado = item;
+          break;
+        }
+      }
+
+      let div = document.getElementById("resultado");
+      div.innerHTML = `🎁 Has obtenido: <span class="${resultado.rareza}">${resultado.nombre}</span> (${resultado.rareza})`;
+
+      document.getElementById("cooldownMsg").innerText = "⏳ Podrás girar de nuevo en 30 minutos.";
+    }
+
+    // Revisar al cargar si está en cooldown
+    window.onload = function() {
+      let lastSpin = localStorage.getItem("lastSpin");
+      if (lastSpin) {
+        let now = Date.now();
+        if (now - lastSpin < cooldown) {
+          let restante = Math.ceil((cooldown - (now - lastSpin)) / 60000);
+          document.getElementById("cooldownMsg").innerText = 
+            "⏳ Espera " + restante + " minutos para volver a girar.";
+        }
+      }
+    }
+  </script>
+</body>
+</html>
