@@ -30,6 +30,7 @@
       padding: 15px;
       border-radius: 10px;
       text-align: center;
+      min-height: 40px;
     }
 
     button {
@@ -44,12 +45,7 @@
       align-self: center;
     }
 
-    button:disabled {
-      background: gray;
-      cursor: not-allowed;
-    }
-
-    button:hover:enabled {
+    button:hover {
       background: #45a049;
     }
 
@@ -85,7 +81,6 @@
   <h1>LOS COMPASITOS GACHA</h1>
   <button id="btnGirar" onclick="girar()">Girar</button>
   <div id="resultado"></div>
-  <div id="cooldownMsg"></div>
 
   <div id="historial">
     <h2>Historial de tus premios:</h2>
@@ -93,52 +88,46 @@
   </div>
 
   <script>
-    const cooldown = 30 * 60 * 1000; // 30 minutos
+    const items = [
+      { nombre: "Sticker", rareza: "Comun", prob: 0.4899 },
+      { nombre: "Nada", rareza: "Comun", prob: 0.4899 },
+      { nombre: "Ayuda con algo", rareza: "Raro", prob: 0.01 },
+      { nombre: "Fruta Perma en Invierno", rareza: "Mítico", prob: 0.0001 }
+    ];
 
     function girar() {
-      let lastSpin = localStorage.getItem("lastSpin");
-      let now = Date.now();
-
-      if (lastSpin && now - lastSpin < cooldown) {
-        let restante = Math.ceil((cooldown - (now - lastSpin)) / 60000);
-        document.getElementById("cooldownMsg").innerText = 
-          "⏳ Espera " + restante + " minutos para volver a girar.";
-        return;
-      }
-
-      localStorage.setItem("lastSpin", now);
-
-      const items = [
-        { nombre: "Sticker", rareza: "Comun", prob: 0.4899 },
-        { nombre: "Nada", rareza: "Comun", prob: 0.4899 },
-        { nombre: "Ayuda con algo", rareza: "Raro", prob: 0.01 },
-        { nombre: "Fruta Perma en Invierno", rareza: "Mítico", prob: 0.0001 }
-      ];
-
-      let rand = Math.random();
-      let acumulado = 0;
-      let resultado;
-
-      for (let item of items) {
-        acumulado += item.prob;
-        if (rand <= acumulado) {
-          resultado = item;
-          break;
-        }
-      }
-
-      // Mostrar resultado
-      let div = document.getElementById("resultado");
-      div.innerHTML = `🎁 Has obtenido: <span class="${resultado.rareza}">${resultado.nombre}</span> (${resultado.rareza})`;
-      document.getElementById("cooldownMsg").innerText = "⏳ Podrás girar de nuevo en 30 minutos.";
-
-      // Guardar historial en localStorage
+      const resultadoDiv = document.getElementById("resultado");
       let historial = JSON.parse(localStorage.getItem("historialGacha") || "[]");
-      historial.unshift({ nombre: resultado.nombre, rareza: resultado.rareza, fecha: new Date().toLocaleString() });
-      localStorage.setItem("historialGacha", JSON.stringify(historial));
 
-      // Actualizar historial en pantalla
-      mostrarHistorial();
+      // Animación: mostrar varios textos antes del final
+      let vueltas = 20; // cuántos textos mostrar
+      let i = 0;
+
+      const animacion = setInterval(() => {
+        let randomItem = items[Math.floor(Math.random() * items.length)];
+        resultadoDiv.innerHTML = `<span class="${randomItem.rareza}">${randomItem.nombre}</span>`;
+        i++;
+        if (i >= vueltas) {
+          clearInterval(animacion);
+          // Elegir resultado final según probabilidades
+          let rand = Math.random();
+          let acumulado = 0;
+          let finalItem;
+          for (let item of items) {
+            acumulado += item.prob;
+            if (rand <= acumulado) {
+              finalItem = item;
+              break;
+            }
+          }
+          resultadoDiv.innerHTML = `🎁 Has obtenido: <span class="${finalItem.rareza}">${finalItem.nombre}</span> (${finalItem.rareza})`;
+
+          // Guardar historial
+          historial.unshift({ nombre: finalItem.nombre, rareza: finalItem.rareza, fecha: new Date().toLocaleString() });
+          localStorage.setItem("historialGacha", JSON.stringify(historial));
+          mostrarHistorial();
+        }
+      }, 100); // cada 100ms cambia el texto
     }
 
     function mostrarHistorial() {
@@ -152,18 +141,7 @@
       });
     }
 
-    window.onload = function() {
-      // Revisar cooldown
-      let lastSpin = localStorage.getItem("lastSpin");
-      if (lastSpin) {
-        let now = Date.now();
-        if (now - lastSpin < cooldown) {
-          let restante = Math.ceil((cooldown - (now - lastSpin)) / 60000);
-          document.getElementById("cooldownMsg").innerText = "⏳ Espera " + restante + " minutos para volver a girar.";
-        }
-      }
-      mostrarHistorial();
-    }
+    window.onload = mostrarHistorial;
   </script>
 </body>
 </html>
