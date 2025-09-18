@@ -15,33 +15,10 @@
     flex-direction: column;
     padding-top: 30px;
   }
-  h1 {
-    text-align: center;
-    font-size: 2em;
-    color: gold;
-    text-shadow: 2px 2px 4px black;
-    margin-bottom: 10px;
-  }
-  #eventoActivo {
-    text-align: center;
-    margin-bottom: 10px;
-    font-size: 1.2em;
-    color: cyan;
-  }
-  #luckActivo {
-    text-align: center;
-    margin-bottom: 10px;
-    font-size: 1.2em;
-    color: orange;
-  }
-  #resultado {
-    margin-top: 20px;
-    font-size: 1.5em;
-    padding: 15px;
-    border-radius: 10px;
-    text-align: center;
-    min-height: 40px;
-  }
+  h1 { text-align: center; font-size: 2em; color: gold; text-shadow: 2px 2px 4px black; margin-bottom: 10px; }
+  #eventoActivo { text-align: center; margin-bottom: 10px; font-size: 1.2em; color: cyan; }
+  #luckActivo { text-align: center; margin-bottom: 10px; font-size: 1.2em; color: orange; }
+  #resultado { margin-top: 20px; font-size: 1.5em; padding: 15px; border-radius: 10px; text-align: center; min-height: 40px; }
   button {
     padding: 15px 30px;
     font-size: 1.2em;
@@ -58,13 +35,7 @@
   .Comun { color: lightgray; }
   .Raro { color: purple; }
   .Mítico { color: red; font-weight: bold; }
-  #historial {
-    margin-top: 30px;
-    max-height: 200px;
-    overflow-y: auto;
-    border-top: 1px solid white;
-    padding-top: 10px;
-  }
+  #historial { margin-top: 30px; max-height: 200px; overflow-y: auto; border-top: 1px solid white; padding-top: 10px; }
   #historial h2 { margin-bottom: 10px; font-size: 1.2em; }
   #historial ul { list-style: none; padding-left: 0; }
   #historial li { margin-bottom: 5px; font-size: 1em; }
@@ -87,13 +58,7 @@
 </div>
 
 <script>
-let cooldownActivo = true;
-let cooldownTiempo = 45 * 60 * 1000;
-let luckMultiplier = 1;
-let luckEndTime = null;
-let gachaActivo = true;
-let eventoNombre = "";
-
+// ITEMS BASE
 const items = [
   { nombre: "Sticker", rareza: "Comun", prob: 0.4899 },
   { nombre: "Nada", rareza: "Comun", prob: 0.4899 },
@@ -101,10 +66,72 @@ const items = [
   { nombre: "Fruta Perma en Invierno", rareza: "Mítico", prob: 0.0001 }
 ];
 
+// CONFIGURACIÓN PERSISTENTE
+let config = JSON.parse(localStorage.getItem("gachaConfig") || "{}");
+
+let luckMultiplier = config.luckMultiplier || 1;
+let luckEndTime = config.luckEndTime || null;
+let gachaActivo = config.gachaActivo !== undefined ? config.gachaActivo : true;
+let cooldownActivo = config.cooldownActivo !== undefined ? config.cooldownActivo : true;
+let cooldownTiempo = 45*60*1000;
+let eventoNombre = config.eventoNombre || "";
+
+// ELEMENTOS
+const btnGirar = document.getElementById("btnGirar");
+const eventoDiv = document.getElementById("eventoActivo");
+const luckDiv = document.getElementById("luckActivo");
+
+// ACTUALIZAR UI SEGÚN CONFIG
+function actualizarUI(){
+  if(!gachaActivo){
+    btnGirar.style.display = "none";
+    eventoDiv.innerHTML = "<span style='color:red;'>❌ No Hay Eventos Activos</span>";
+  } else {
+    btnGirar.style.display = "block";
+    eventoDiv.innerText = eventoNombre ? "Evento Activo: "+eventoNombre : "";
+  }
+}
+actualizarUI();
+
+// CALCULAR PROBABILIDADES CON LUCK
+function calcularProbabilidades(){
+  let probTotal = 0;
+  let newProbs = [];
+  items.forEach(item=>{
+    let prob = item.prob;
+    if(item.rareza === "Raro" || item.rareza === "Mítico"){
+      prob *= luckMultiplier; // xLuck aumenta probabilidad
+    }
+    newProbs.push(prob);
+    probTotal += prob;
+  });
+  // Normalizar
+  newProbs = newProbs.map(p=>p/probTotal);
+  return newProbs;
+}
+
+// OBTENER RESULTADO FINAL
+function obtenerResultado(){
+  let probs = calcularProbabilidades();
+  let rand = Math.random();
+  let acumulado = 0;
+  let finalItem;
+  for(let i=0;i<items.length;i++){
+    acumulado += probs[i];
+    if(rand <= acumulado){
+      finalItem = items[i];
+      break;
+    }
+  }
+  if(!finalItem) finalItem = items[0];
+  return finalItem;
+}
+
+// FUNCION GIRAR
 function girar(){
   const resultadoDiv = document.getElementById("resultado");
   if(!gachaActivo){
-    resultadoDiv.innerText = "❌ No Hay Eventos Activos";
+    resultadoDiv.innerHTML = "<span style='color:red;'>❌ No Hay Eventos Activos</span>";
     return;
   }
 
@@ -121,39 +148,29 @@ function girar(){
     localStorage.setItem("lastSpin", Date.now());
   }
 
-  // Animación tipo gacha
+  // ANIMACION TIPO GACHA
   let vueltas = 20;
-  let i = 0;
+  let i=0;
   const animacion = setInterval(()=>{
-    let randomItem = items[Math.floor(Math.random() * items.length)];
+    let randomItem = items[Math.floor(Math.random()*items.length)];
     resultadoDiv.innerHTML = `<span class="${randomItem.rareza}">${randomItem.nombre}</span>`;
     i++;
     if(i>=vueltas){
       clearInterval(animacion);
-      let rand = Math.random();
-      let acumulado = 0;
-      let finalItem;
-      for(let item of items){
-        let probAjustada = item.prob * luckMultiplier;
-        acumulado += probAjustada;
-        if(rand <= acumulado){
-          finalItem = item;
-          break;
-        }
-      }
-      if(!finalItem) finalItem = items[0];
-      resultadoDiv.innerHTML = `🎁 Has obtenido: <span class="${finalItem.rareza}">${finalItem.nombre}</span> (${finalItem.rareza})`;
-      historial.unshift({nombre: finalItem.nombre, rareza: finalItem.rareza, fecha: new Date().toLocaleString()});
+      let finalItem = obtenerResultado();
+      resultadoDiv.innerHTML=`🎁 Has obtenido: <span class="${finalItem.rareza}">${finalItem.nombre}</span> (${finalItem.rareza})`;
+      historial.unshift({nombre: finalItem.nombre, rareza: finalItem.rareza, fecha:new Date().toLocaleString()});
       localStorage.setItem("historialGacha", JSON.stringify(historial));
       mostrarHistorial();
     }
-  }, 100);
+  },100);
 }
 
+// HISTORIAL
 function mostrarHistorial(){
   let historial = JSON.parse(localStorage.getItem("historialGacha") || "[]");
   let lista = document.getElementById("historial-list");
-  lista.innerHTML = "";
+  lista.innerHTML="";
   historial.forEach(item=>{
     let li = document.createElement("li");
     li.innerHTML = `[${item.fecha}] <span class="${item.rareza}">${item.nombre}</span> (${item.rareza})`;
@@ -161,58 +178,55 @@ function mostrarHistorial(){
   });
 }
 
+// PANEL ADMIN
 function abrirPanel(){
   let pass = prompt("Inserta la contraseña:");
-  if(pass === "HolaXD"){
-    let opcion = prompt(
-      "Elige opción:\n"+
-      "1. x2 Luck\n2. x4 Luck\n3. x6 Luck\n4. x8 Luck\n"+
-      "5. Activar cooldown\n6. Desactivar cooldown\n"+
-      "7. Desactivar Gacha\n8. Activar Gacha\n9. Establecer Evento"
-    );
-    switch(opcion){
-      case "1": activarLuck(2); break;
-      case "2": activarLuck(4); break;
-      case "3": activarLuck(6); break;
-      case "4": activarLuck(8); break;
-      case "5": cooldownActivo = true; alert("Cooldown activado"); break;
-      case "6": cooldownActivo = false; alert("Cooldown desactivado"); break;
-      case "7": gachaActivo = false; alert("Gacha desactivado"); break;
-      case "8": gachaActivo = true; alert("Gacha activado"); break;
-      case "9":
-        let nombre = prompt("Nombre del evento:");
-        eventoNombre = nombre;
-        document.getElementById("eventoActivo").innerText = "Evento Activo: "+eventoNombre;
-        break;
-      default: alert("Opción inválida"); break;
-    }
-  } else alert("Contraseña incorrecta");
+  if(pass!=="HolaXD"){ alert("Contraseña incorrecta"); return; }
+
+  let opcion = prompt(
+    "Elige opción:\n"+
+    "1. x2 Luck\n2. x4 Luck\n3. x6 Luck\n4. x8 Luck\n"+
+    "5. Activar cooldown\n6. Desactivar cooldown\n"+
+    "7. Desactivar Gacha\n8. Activar Gacha\n9. Establecer Evento"
+  );
+
+  switch(opcion){
+    case "1": activarLuck(2); break;
+    case "2": activarLuck(4); break;
+    case "3": activarLuck(6); break;
+    case "4": activarLuck(8); break;
+    case "5": cooldownActivo=true; alert("Cooldown activado"); break;
+    case "6": cooldownActivo=false; alert("Cooldown desactivado"); break;
+    case "7": gachaActivo=false; alert("Gacha desactivado"); break;
+    case "8": gachaActivo=true; alert("Gacha activado"); break;
+    case "9":
+      let nombre = prompt("Nombre del evento:");
+      eventoNombre = nombre; 
+      break;
+    default: alert("Opción inválida"); break;
+  }
+  guardarConfig();
+  actualizarUI();
 }
 
 function activarLuck(mult){
   luckMultiplier = mult;
-  luckEndTime = Date.now() + 10*60*1000; // duración 10 minutos por ejemplo
-  document.getElementById("luckActivo").innerText = `x${mult} Luck activo se acaba en 10:00`;
-  alert(`Luck x${mult} activado`);
+  luckEndTime = Date.now() + 10*60*1000; // 10 minutos
+  alert(`x${mult} Luck activado 10 minutos`);
+  guardarConfig();
 }
 
-// Actualizar contador de luck
+// GUARDAR CONFIGURACION
+function guardarConfig(){
+  config={luckMultiplier,luckEndTime,gachaActivo,cooldownActivo,eventoNombre};
+  localStorage.setItem("gachaConfig",JSON.stringify(config));
+}
+
+// ACTUALIZAR CONTADOR DE LUCK
 setInterval(()=>{
   if(luckEndTime){
     let restante = luckEndTime - Date.now();
-    if(restante > 0){
+    if(restante>0){
       let min = Math.floor(restante/60000);
       let seg = Math.floor((restante%60000)/1000);
-      document.getElementById("luckActivo").innerText = `x${luckMultiplier} Luck activo se acaba en ${min}:${seg<10?'0'+seg:seg}`;
-    } else {
-      luckMultiplier = 1;
-      luckEndTime = null;
-      document.getElementById("luckActivo").innerText = "";
-    }
-  }
-}, 1000);
-
-window.onload = mostrarHistorial;
-</script>
-</body>
-</html>
+      luckDiv.innerText = `x${luckMultiplier
