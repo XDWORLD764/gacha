@@ -22,25 +22,19 @@
     text-shadow: 2px 2px 4px black;
     margin-bottom: 10px;
   }
-  #eventoActivo {
+  #eventoActivo, #luckActivo {
     text-align: center;
     margin-bottom: 10px;
     font-size: 1.2em;
-    color: cyan;
-  }
-  #luckActivo {
-    text-align: center;
-    margin-bottom: 10px;
-    font-size: 1.2em;
-    color: orange;
   }
   #resultado {
     margin-top: 20px;
-    font-size: 1.5em;
+    font-size: 1.2em;
     padding: 15px;
     border-radius: 10px;
     text-align: center;
-    min-height: 40px;
+    min-height: 60px;
+    border: 2px solid white;
   }
   button {
     padding: 15px 30px;
@@ -55,19 +49,19 @@
     margin-top: 10px;
   }
   button:hover { background: #45a049; }
-  .Comun { color: lightgray; }
-  .Raro { color: purple; }
-  .Mítico { color: red; font-weight: bold; }
-  #historial {
+  .Comun { color: lightgray; border: 2px solid gray; padding: 5px; display:inline-block; border-radius:8px;}
+  .Raro { color: purple; border: 2px solid purple; padding: 5px; display:inline-block; border-radius:8px;}
+  .Mítico { color: red; border: 2px solid red; font-weight: bold; padding: 5px; display:inline-block; border-radius:8px;}
+  #historial, #inventario {
     margin-top: 30px;
     max-height: 200px;
     overflow-y: auto;
     border-top: 1px solid white;
     padding-top: 10px;
   }
-  #historial h2 { margin-bottom: 10px; font-size: 1.2em; }
-  #historial ul { list-style: none; padding-left: 0; }
-  #historial li { margin-bottom: 5px; font-size: 1em; }
+  #historial h2, #inventario h2 { margin-bottom: 10px; font-size: 1.2em; }
+  #historial ul, #inventario ul { list-style: none; padding-left: 0; display:flex; flex-wrap: wrap; gap:10px;}
+  #historial li, #inventario li { margin-bottom: 5px; font-size: 1em; text-align:center; }
 </style>
 </head>
 <body>
@@ -84,6 +78,11 @@
 <div id="historial">
   <h2>Historial de tus premios:</h2>
   <ul id="historial-list"></ul>
+</div>
+
+<div id="inventario">
+  <h2>Inventario:</h2>
+  <ul id="inventario-list"></ul>
 </div>
 
 <script>
@@ -130,11 +129,22 @@ function girar(){
     i++;
     if(i>=vueltas){
       clearInterval(animacion);
-      let rand = Math.random();
+
+      // Calcular item final con Luck multiplicando la probabilidad de raros y míticos
+      let totalProb = items.reduce((acc, item)=>{
+        let probAjustada = item.prob;
+        if(item.rareza === "Raro") probAjustada *= luckMultiplier;
+        if(item.rareza === "Mítico") probAjustada *= luckMultiplier * 2;
+        return acc + probAjustada;
+      },0);
+
+      let rand = Math.random() * totalProb;
       let acumulado = 0;
       let finalItem;
       for(let item of items){
-        let probAjustada = item.prob * luckMultiplier;
+        let probAjustada = item.prob;
+        if(item.rareza === "Raro") probAjustada *= luckMultiplier;
+        if(item.rareza === "Mítico") probAjustada *= luckMultiplier * 2;
         acumulado += probAjustada;
         if(rand <= acumulado){
           finalItem = item;
@@ -142,10 +152,20 @@ function girar(){
         }
       }
       if(!finalItem) finalItem = items[0];
-      resultadoDiv.innerHTML = `🎁 Has obtenido: <span class="${finalItem.rareza}">${finalItem.nombre}</span> (${finalItem.rareza})`;
+
+      // Preguntar Guardar o Desechar
+      let accion = confirm(`🎁 Has obtenido: ${finalItem.nombre} (${finalItem.rareza})\nDeseas GUARDARlo? Cancelar = Desechar`);
+      if(accion){
+        let inventario = JSON.parse(localStorage.getItem("inventario") || "[]");
+        inventario.push(finalItem);
+        localStorage.setItem("inventario", JSON.stringify(inventario));
+        alert("¡Guardado en tu inventario!");
+      }
+
       historial.unshift({nombre: finalItem.nombre, rareza: finalItem.rareza, fecha: new Date().toLocaleString()});
       localStorage.setItem("historialGacha", JSON.stringify(historial));
       mostrarHistorial();
+      mostrarInventario();
     }
   }, 100);
 }
@@ -156,7 +176,18 @@ function mostrarHistorial(){
   lista.innerHTML = "";
   historial.forEach(item=>{
     let li = document.createElement("li");
-    li.innerHTML = `[${item.fecha}] <span class="${item.rareza}">${item.nombre}</span> (${item.rareza})`;
+    li.innerHTML = `<span class="${item.rareza}">${item.nombre}</span> (${item.rareza})`;
+    lista.appendChild(li);
+  });
+}
+
+function mostrarInventario(){
+  let inventario = JSON.parse(localStorage.getItem("inventario") || "[]");
+  let lista = document.getElementById("inventario-list");
+  lista.innerHTML = "";
+  inventario.forEach(item=>{
+    let li = document.createElement("li");
+    li.innerHTML = `<span class="${item.rareza}">${item.nombre}</span>`;
     lista.appendChild(li);
   });
 }
@@ -191,7 +222,7 @@ function abrirPanel(){
 
 function activarLuck(mult){
   luckMultiplier = mult;
-  luckEndTime = Date.now() + 10*60*1000; // duración 10 minutos por ejemplo
+  luckEndTime = Date.now() + 10*60*1000; // duración 10 minutos
   document.getElementById("luckActivo").innerText = `x${mult} Luck activo se acaba en 10:00`;
   alert(`Luck x${mult} activado`);
 }
@@ -212,7 +243,10 @@ setInterval(()=>{
   }
 }, 1000);
 
-window.onload = mostrarHistorial;
+window.onload = ()=>{
+  mostrarHistorial();
+  mostrarInventario();
+};
 </script>
 </body>
 </html>
