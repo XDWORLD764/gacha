@@ -1,147 +1,168 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>LOS COMPASITOS GACHA</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #1a1a1a, #333);
-      color: white;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      height: 100vh;
-      flex-direction: column;
-      padding-top: 30px;
-    }
-
-    h1 {
-      margin-bottom: 20px;
-      text-align: center;
-      font-size: 2em;
-      color: gold;
-      text-shadow: 2px 2px 4px black;
-    }
-
-    #resultado {
-      margin-top: 20px;
-      font-size: 1.5em;
-      padding: 15px;
-      border-radius: 10px;
-      text-align: center;
-      min-height: 40px;
-    }
-
-    button {
-      padding: 15px 30px;
-      font-size: 1.2em;
-      border: none;
-      border-radius: 12px;
-      cursor: pointer;
-      background: #4CAF50;
-      color: white;
-      transition: 0.3s;
-      align-self: center;
-    }
-
-    button:hover {
-      background: #45a049;
-    }
-
-    .Comun { color: lightgray; }
-    .Raro { color: purple; }
-    .Mítico { color: red; font-weight: bold; }
-
-    #historial {
-      margin-top: 30px;
-      max-height: 200px;
-      overflow-y: auto;
-      border-top: 1px solid white;
-      padding-top: 10px;
-    }
-
-    #historial h2 {
-      margin-bottom: 10px;
-      font-size: 1.2em;
-    }
-
-    #historial ul {
-      list-style: none;
-      padding-left: 0;
-    }
-
-    #historial li {
-      margin-bottom: 5px;
-      font-size: 1em;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>LOS COMPASITOS GACHA</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #1a1a1a, #333);
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    height: 100vh;
+    flex-direction: column;
+    padding-top: 30px;
+  }
+  h1 {
+    text-align: center;
+    font-size: 2em;
+    color: gold;
+    text-shadow: 2px 2px 4px black;
+    margin-bottom: 20px;
+  }
+  #resultado {
+    margin-top: 20px;
+    font-size: 1.5em;
+    padding: 15px;
+    border-radius: 10px;
+    text-align: center;
+    min-height: 40px;
+  }
+  button {
+    padding: 15px 30px;
+    font-size: 1.2em;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    background: #4CAF50;
+    color: white;
+    transition: 0.3s;
+    align-self: center;
+    margin-top: 10px;
+  }
+  button:hover { background: #45a049; }
+  .Comun { color: lightgray; }
+  .Raro { color: purple; }
+  .Mítico { color: red; font-weight: bold; }
+  #historial {
+    margin-top: 30px;
+    max-height: 200px;
+    overflow-y: auto;
+    border-top: 1px solid white;
+    padding-top: 10px;
+  }
+  #historial h2 { margin-bottom: 10px; font-size: 1.2em; }
+  #historial ul { list-style: none; padding-left: 0; }
+  #historial li { margin-bottom: 5px; font-size: 1em; }
+</style>
 </head>
 <body>
-  <h1>LOS COMPASITOS GACHA</h1>
-  <button id="btnGirar" onclick="girar()">Girar</button>
-  <div id="resultado"></div>
 
-  <div id="historial">
-    <h2>Historial de tus premios:</h2>
-    <ul id="historial-list"></ul>
-  </div>
+<h1>LOS COMPASITOS GACHA</h1>
 
-  <script>
-    const items = [
-      { nombre: "Sticker", rareza: "Comun", prob: 0.4899 },
-      { nombre: "Nada", rareza: "Comun", prob: 0.4899 },
-      { nombre: "Ayuda con algo", rareza: "Raro", prob: 0.01 },
-      { nombre: "Fruta Perma en Invierno", rareza: "Mítico", prob: 0.0001 }
-    ];
+<button id="btnGirar" onclick="girar()">Girar</button>
+<button id="btnAdmin" onclick="abrirPanel()">Panel de administración</button>
 
-    function girar() {
-      const resultadoDiv = document.getElementById("resultado");
-      let historial = JSON.parse(localStorage.getItem("historialGacha") || "[]");
+<div id="resultado"></div>
 
-      // Animación: mostrar varios textos antes del final
-      let vueltas = 20; // cuántos textos mostrar
-      let i = 0;
+<div id="historial">
+  <h2>Historial de tus premios:</h2>
+  <ul id="historial-list"></ul>
+</div>
 
-      const animacion = setInterval(() => {
-        let randomItem = items[Math.floor(Math.random() * items.length)];
-        resultadoDiv.innerHTML = `<span class="${randomItem.rareza}">${randomItem.nombre}</span>`;
-        i++;
-        if (i >= vueltas) {
-          clearInterval(animacion);
-          // Elegir resultado final según probabilidades
-          let rand = Math.random();
-          let acumulado = 0;
-          let finalItem;
-          for (let item of items) {
-            acumulado += item.prob;
-            if (rand <= acumulado) {
-              finalItem = item;
-              break;
-            }
+<script>
+  // Configuración inicial
+  let cooldownActivo = true;
+  let cooldownTiempo = 45 * 60 * 1000; // 45 minutos
+  let luckMultiplier = 1; // Multiplicador de suerte por defecto
+
+  const items = [
+    { nombre: "Sticker", rareza: "Comun", prob: 0.4899 },
+    { nombre: "Nada", rareza: "Comun", prob: 0.4899 },
+    { nombre: "Ayuda con algo", rareza: "Raro", prob: 0.01 },
+    { nombre: "Fruta Perma en Invierno", rareza: "Mítico", prob: 0.0001 }
+  ];
+
+  function girar() {
+    const resultadoDiv = document.getElementById("resultado");
+    let historial = JSON.parse(localStorage.getItem("historialGacha") || "[]");
+
+    // Revisar cooldown si está activo
+    if(cooldownActivo) {
+      let lastSpin = localStorage.getItem("lastSpin");
+      let now = Date.now();
+      if(lastSpin && now - lastSpin < cooldownTiempo){
+        let restante = Math.ceil((cooldownTiempo - (now - lastSpin)) / 60000);
+        resultadoDiv.innerText = "⏳ Espera " + restante + " minutos para girar de nuevo.";
+        return;
+      }
+      localStorage.setItem("lastSpin", now);
+    }
+
+    // Animación tipo gacha
+    let vueltas = 20; 
+    let i = 0;
+    const animacion = setInterval(() => {
+      let randomItem = items[Math.floor(Math.random() * items.length)];
+      resultadoDiv.innerHTML = `<span class="${randomItem.rareza}">${randomItem.nombre}</span>`;
+      i++;
+      if(i >= vueltas){
+        clearInterval(animacion);
+        // Elegir resultado final según probabilidades y luck multiplier
+        let rand = Math.random();
+        let acumulado = 0;
+        let finalItem;
+        for(let item of items){
+          let probAjustada = item.prob * luckMultiplier;
+          acumulado += probAjustada;
+          if(rand <= acumulado){
+            finalItem = item;
+            break;
           }
-          resultadoDiv.innerHTML = `🎁 Has obtenido: <span class="${finalItem.rareza}">${finalItem.nombre}</span> (${finalItem.rareza})`;
-
-          // Guardar historial
-          historial.unshift({ nombre: finalItem.nombre, rareza: finalItem.rareza, fecha: new Date().toLocaleString() });
-          localStorage.setItem("historialGacha", JSON.stringify(historial));
-          mostrarHistorial();
         }
-      }, 100); // cada 100ms cambia el texto
-    }
+        if(!finalItem) finalItem = items[0]; // fallback
+        resultadoDiv.innerHTML = `🎁 Has obtenido: <span class="${finalItem.rareza}">${finalItem.nombre}</span> (${finalItem.rareza})`;
 
-    function mostrarHistorial() {
-      let historial = JSON.parse(localStorage.getItem("historialGacha") || "[]");
-      let lista = document.getElementById("historial-list");
-      lista.innerHTML = "";
-      historial.forEach(item => {
-        let li = document.createElement("li");
-        li.innerHTML = `[${item.fecha}] <span class="${item.rareza}">${item.nombre}</span> (${item.rareza})`;
-        lista.appendChild(li);
-      });
-    }
+        // Guardar en historial
+        historial.unshift({nombre: finalItem.nombre, rareza: finalItem.rareza, fecha: new Date().toLocaleString()});
+        localStorage.setItem("historialGacha", JSON.stringify(historial));
+        mostrarHistorial();
+      }
+    }, 100);
+  }
 
-    window.onload = mostrarHistorial;
-  </script>
+  function mostrarHistorial(){
+    let historial = JSON.parse(localStorage.getItem("historialGacha") || "[]");
+    let lista = document.getElementById("historial-list");
+    lista.innerHTML = "";
+    historial.forEach(item => {
+      let li = document.createElement("li");
+      li.innerHTML = `[${item.fecha}] <span class="${item.rareza}">${item.nombre}</span> (${item.rareza})`;
+      lista.appendChild(li);
+    });
+  }
+
+  function abrirPanel(){
+    let pass = prompt("Inserta la contraseña:");
+    if(pass === "HolaXD"){
+      let opcion = prompt("Elige opción:\n1. x2 Luck\n2. x4 Luck\n3. x6 Luck\n4. x8 Luck\n5. Activar cooldown\n6. Desactivar cooldown");
+      switch(opcion){
+        case "1": luckMultiplier = 2; alert("Luck x2 activado"); break;
+        case "2": luckMultiplier = 4; alert("Luck x4 activado"); break;
+        case "3": luckMultiplier = 6; alert("Luck x6 activado"); break;
+        case "4": luckMultiplier = 8; alert("Luck x8 activado"); break;
+        case "5": cooldownActivo = true; alert("Cooldown activado"); break;
+        case "6": cooldownActivo = false; alert("Cooldown desactivado"); break;
+        default: alert("Opción inválida"); break;
+      }
+    } else {
+      alert("Contraseña incorrecta");
+    }
+  }
+
+  window.onload = mostrarHistorial;
+</script>
 </body>
 </html>
