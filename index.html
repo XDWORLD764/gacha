@@ -4,41 +4,20 @@
 <meta charset="UTF-8">
 <title>LOS COMPASITOS GACHA</title>
 <style>
-  body {
-    font-family: Arial, sans-serif;
-    background: linear-gradient(135deg, #1a1a1a, #333);
-    color: white;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    height: 100vh;
-    flex-direction: column;
-    padding-top: 30px;
-  }
-  h1 { text-align: center; font-size: 2em; color: gold; text-shadow: 2px 2px 4px black; margin-bottom: 10px; }
-  #eventoActivo { text-align: center; margin-bottom: 10px; font-size: 1.2em; color: cyan; }
-  #luckActivo { text-align: center; margin-bottom: 10px; font-size: 1.2em; color: orange; }
-  #resultado { margin-top: 20px; font-size: 1.5em; padding: 15px; border-radius: 10px; text-align: center; min-height: 40px; }
-  button {
-    padding: 15px 30px;
-    font-size: 1.2em;
-    border: none;
-    border-radius: 12px;
-    cursor: pointer;
-    background: #4CAF50;
-    color: white;
-    transition: 0.3s;
-    align-self: center;
-    margin-top: 10px;
-  }
-  button:hover { background: #45a049; }
+  body { font-family: Arial, sans-serif; background: linear-gradient(135deg, #1a1a1a, #333); color: white; display:flex; flex-direction:column; align-items:center; padding-top:30px;}
+  h1 { text-align:center; font-size:2em; color:gold; text-shadow:2px 2px 4px black; margin-bottom:10px;}
+  #eventoActivo { text-align:center; margin-bottom:10px; font-size:1.2em; color:cyan;}
+  #luckActivo { text-align:center; margin-bottom:10px; font-size:1.2em; color:orange;}
+  #resultado { margin-top:20px; font-size:1.5em; padding:15px; border-radius:10px; text-align:center; min-height:40px;}
+  button { padding:15px 30px; font-size:1.2em; border:none; border-radius:12px; cursor:pointer; background:#4CAF50; color:white; transition:0.3s; margin-top:10px;}
+  button:hover { background:#45a049;}
   .Comun { color: lightgray; }
   .Raro { color: purple; }
-  .Mítico { color: red; font-weight: bold; }
-  #historial { margin-top: 30px; max-height: 200px; overflow-y: auto; border-top: 1px solid white; padding-top: 10px; }
-  #historial h2 { margin-bottom: 10px; font-size: 1.2em; }
-  #historial ul { list-style: none; padding-left: 0; }
-  #historial li { margin-bottom: 5px; font-size: 1em; }
+  .Mítico { color: red; font-weight:bold; }
+  #historial { margin-top:30px; max-height:200px; overflow-y:auto; border-top:1px solid white; padding-top:10px;}
+  #historial h2 { margin-bottom:10px; font-size:1.2em;}
+  #historial ul { list-style:none; padding-left:0;}
+  #historial li { margin-bottom:5px; font-size:1em;}
 </style>
 </head>
 <body>
@@ -47,8 +26,8 @@
 <div id="eventoActivo"></div>
 <div id="luckActivo"></div>
 
-<button id="btnGirar" onclick="girar()">Girar</button>
-<button id="btnAdmin" onclick="abrirPanel()">Panel de administración</button>
+<button id="btnGirar">Girar</button>
+<button id="btnAdmin">Panel de administración</button>
 
 <div id="resultado"></div>
 
@@ -66,9 +45,8 @@ const items = [
   { nombre: "Fruta Perma en Invierno", rareza: "Mítico", prob: 0.0001 }
 ];
 
-// CONFIGURACIÓN PERSISTENTE
+// CONFIGURACION PERSISTENTE
 let config = JSON.parse(localStorage.getItem("gachaConfig") || "{}");
-
 let luckMultiplier = config.luckMultiplier || 1;
 let luckEndTime = config.luckEndTime || null;
 let gachaActivo = config.gachaActivo !== undefined ? config.gachaActivo : true;
@@ -80,8 +58,9 @@ let eventoNombre = config.eventoNombre || "";
 const btnGirar = document.getElementById("btnGirar");
 const eventoDiv = document.getElementById("eventoActivo");
 const luckDiv = document.getElementById("luckActivo");
+const resultadoDiv = document.getElementById("resultado");
 
-// ACTUALIZAR UI SEGÚN CONFIG
+// FUNCIONES
 function actualizarUI(){
   if(!gachaActivo){
     btnGirar.style.display = "none";
@@ -93,77 +72,34 @@ function actualizarUI(){
 }
 actualizarUI();
 
+function guardarConfig(){
+  config = {luckMultiplier, luckEndTime, gachaActivo, cooldownActivo, eventoNombre};
+  localStorage.setItem("gachaConfig", JSON.stringify(config));
+}
+
 // CALCULAR PROBABILIDADES CON LUCK
 function calcularProbabilidades(){
-  let probTotal = 0;
-  let newProbs = [];
+  let probs = [];
+  let total = 0;
   items.forEach(item=>{
-    let prob = item.prob;
-    if(item.rareza === "Raro" || item.rareza === "Mítico"){
-      prob *= luckMultiplier; // xLuck aumenta probabilidad
-    }
-    newProbs.push(prob);
-    probTotal += prob;
+    let p = item.prob;
+    if(item.rareza === "Raro" || item.rareza === "Mítico") p *= luckMultiplier;
+    probs.push(p);
+    total += p;
   });
-  // Normalizar
-  newProbs = newProbs.map(p=>p/probTotal);
-  return newProbs;
+  return probs.map(p=>p/total); // normalizar
 }
 
 // OBTENER RESULTADO FINAL
 function obtenerResultado(){
-  let probs = calcularProbabilidades();
+  const probs = calcularProbabilidades();
   let rand = Math.random();
   let acumulado = 0;
-  let finalItem;
   for(let i=0;i<items.length;i++){
     acumulado += probs[i];
-    if(rand <= acumulado){
-      finalItem = items[i];
-      break;
-    }
+    if(rand <= acumulado) return items[i];
   }
-  if(!finalItem) finalItem = items[0];
-  return finalItem;
-}
-
-// FUNCION GIRAR
-function girar(){
-  const resultadoDiv = document.getElementById("resultado");
-  if(!gachaActivo){
-    resultadoDiv.innerHTML = "<span style='color:red;'>❌ No Hay Eventos Activos</span>";
-    return;
-  }
-
-  let historial = JSON.parse(localStorage.getItem("historialGacha") || "[]");
-
-  if(cooldownActivo){
-    let lastSpin = localStorage.getItem("lastSpin");
-    let now = Date.now();
-    if(lastSpin && now - lastSpin < cooldownTiempo){
-      let restante = Math.ceil((cooldownTiempo - (now - lastSpin)) / 60000);
-      resultadoDiv.innerText = "⏳ Espera " + restante + " minutos para girar de nuevo.";
-      return;
-    }
-    localStorage.setItem("lastSpin", Date.now());
-  }
-
-  // ANIMACION TIPO GACHA
-  let vueltas = 20;
-  let i=0;
-  const animacion = setInterval(()=>{
-    let randomItem = items[Math.floor(Math.random()*items.length)];
-    resultadoDiv.innerHTML = `<span class="${randomItem.rareza}">${randomItem.nombre}</span>`;
-    i++;
-    if(i>=vueltas){
-      clearInterval(animacion);
-      let finalItem = obtenerResultado();
-      resultadoDiv.innerHTML=`🎁 Has obtenido: <span class="${finalItem.rareza}">${finalItem.nombre}</span> (${finalItem.rareza})`;
-      historial.unshift({nombre: finalItem.nombre, rareza: finalItem.rareza, fecha:new Date().toLocaleString()});
-      localStorage.setItem("historialGacha", JSON.stringify(historial));
-      mostrarHistorial();
-    }
-  },100);
+  return items[0];
 }
 
 // HISTORIAL
@@ -177,6 +113,43 @@ function mostrarHistorial(){
     lista.appendChild(li);
   });
 }
+mostrarHistorial();
+
+// GIRAR
+function girar(){
+  if(!gachaActivo){
+    resultadoDiv.innerHTML = "<span style='color:red;'>❌ No Hay Eventos Activos</span>";
+    return;
+  }
+
+  let historial = JSON.parse(localStorage.getItem("historialGacha") || "[]");
+
+  if(cooldownActivo){
+    let lastSpin = localStorage.getItem("lastSpin");
+    let now = Date.now();
+    if(lastSpin && now - lastSpin < cooldownTiempo){
+      let restante = Math.ceil((cooldownTiempo - (now - lastSpin))/60000);
+      resultadoDiv.innerText = "⏳ Espera " + restante + " minutos para girar de nuevo.";
+      return;
+    }
+    localStorage.setItem("lastSpin", Date.now());
+  }
+
+  let vueltas = 20, i=0;
+  const anim = setInterval(()=>{
+    let r = items[Math.floor(Math.random()*items.length)];
+    resultadoDiv.innerHTML = `<span class="${r.rareza}">${r.nombre}</span>`;
+    i++;
+    if(i>=vueltas){
+      clearInterval(anim);
+      let finalItem = obtenerResultado();
+      resultadoDiv.innerHTML = `🎁 Has obtenido: <span class="${finalItem.rareza}">${finalItem.nombre}</span> (${finalItem.rareza})`;
+      historial.unshift({nombre:finalItem.nombre, rareza:finalItem.rareza, fecha:new Date().toLocaleString()});
+      localStorage.setItem("historialGacha", JSON.stringify(historial));
+      mostrarHistorial();
+    }
+  },100);
+}
 
 // PANEL ADMIN
 function abrirPanel(){
@@ -184,10 +157,7 @@ function abrirPanel(){
   if(pass!=="HolaXD"){ alert("Contraseña incorrecta"); return; }
 
   let opcion = prompt(
-    "Elige opción:\n"+
-    "1. x2 Luck\n2. x4 Luck\n3. x6 Luck\n4. x8 Luck\n"+
-    "5. Activar cooldown\n6. Desactivar cooldown\n"+
-    "7. Desactivar Gacha\n8. Activar Gacha\n9. Establecer Evento"
+    "Elige opción:\n1. x2 Luck\n2. x4 Luck\n3. x6 Luck\n4. x8 Luck\n5. Activar cooldown\n6. Desactivar cooldown\n7. Desactivar Gacha\n8. Activar Gacha\n9. Establecer Evento"
   );
 
   switch(opcion){
@@ -201,8 +171,7 @@ function abrirPanel(){
     case "8": gachaActivo=true; alert("Gacha activado"); break;
     case "9":
       let nombre = prompt("Nombre del evento:");
-      eventoNombre = nombre; 
-      break;
+      eventoNombre = nombre; break;
     default: alert("Opción inválida"); break;
   }
   guardarConfig();
@@ -211,22 +180,16 @@ function abrirPanel(){
 
 function activarLuck(mult){
   luckMultiplier = mult;
-  luckEndTime = Date.now() + 10*60*1000; // 10 minutos
-  alert(`x${mult} Luck activado 10 minutos`);
+  luckEndTime = Date.now() + 10*60*1000; // 10 min
   guardarConfig();
+  alert(`x${mult} Luck activado 10 minutos`);
 }
 
-// GUARDAR CONFIGURACION
-function guardarConfig(){
-  config={luckMultiplier,luckEndTime,gachaActivo,cooldownActivo,eventoNombre};
-  localStorage.setItem("gachaConfig",JSON.stringify(config));
-}
-
-// ACTUALIZAR CONTADOR DE LUCK
+// CONTADOR DE LUCK
 setInterval(()=>{
   if(luckEndTime){
     let restante = luckEndTime - Date.now();
     if(restante>0){
       let min = Math.floor(restante/60000);
       let seg = Math.floor((restante%60000)/1000);
-      luckDiv.innerText = `x${luckMultiplier
+      luckDiv.innerText = `x${luckMultiplier} Luck activo se acaba en ${min}:${seg<10?'0'+
