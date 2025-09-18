@@ -20,7 +20,19 @@
     font-size: 2em;
     color: gold;
     text-shadow: 2px 2px 4px black;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
+  }
+  #eventoActivo {
+    text-align: center;
+    margin-bottom: 10px;
+    font-size: 1.2em;
+    color: cyan;
+  }
+  #luckActivo {
+    text-align: center;
+    margin-bottom: 10px;
+    font-size: 1.2em;
+    color: orange;
   }
   #resultado {
     margin-top: 20px;
@@ -61,6 +73,8 @@
 <body>
 
 <h1>LOS COMPASITOS GACHA</h1>
+<div id="eventoActivo"></div>
+<div id="luckActivo"></div>
 
 <button id="btnGirar" onclick="girar()">Girar</button>
 <button id="btnAdmin" onclick="abrirPanel()">Panel de administración</button>
@@ -73,96 +87,132 @@
 </div>
 
 <script>
-  // Configuración inicial
-  let cooldownActivo = true;
-  let cooldownTiempo = 45 * 60 * 1000; // 45 minutos
-  let luckMultiplier = 1; // Multiplicador de suerte por defecto
+let cooldownActivo = true;
+let cooldownTiempo = 45 * 60 * 1000;
+let luckMultiplier = 1;
+let luckEndTime = null;
+let gachaActivo = true;
+let eventoNombre = "";
 
-  const items = [
-    { nombre: "Sticker", rareza: "Comun", prob: 0.4899 },
-    { nombre: "Nada", rareza: "Comun", prob: 0.4899 },
-    { nombre: "Ayuda con algo", rareza: "Raro", prob: 0.01 },
-    { nombre: "Fruta Perma en Invierno", rareza: "Mítico", prob: 0.0001 }
-  ];
+const items = [
+  { nombre: "Sticker", rareza: "Comun", prob: 0.4899 },
+  { nombre: "Nada", rareza: "Comun", prob: 0.4899 },
+  { nombre: "Ayuda con algo", rareza: "Raro", prob: 0.01 },
+  { nombre: "Fruta Perma en Invierno", rareza: "Mítico", prob: 0.0001 }
+];
 
-  function girar() {
-    const resultadoDiv = document.getElementById("resultado");
-    let historial = JSON.parse(localStorage.getItem("historialGacha") || "[]");
+function girar(){
+  const resultadoDiv = document.getElementById("resultado");
+  if(!gachaActivo){
+    resultadoDiv.innerText = "❌ No Hay Eventos Activos";
+    return;
+  }
 
-    // Revisar cooldown si está activo
-    if(cooldownActivo) {
-      let lastSpin = localStorage.getItem("lastSpin");
-      let now = Date.now();
-      if(lastSpin && now - lastSpin < cooldownTiempo){
-        let restante = Math.ceil((cooldownTiempo - (now - lastSpin)) / 60000);
-        resultadoDiv.innerText = "⏳ Espera " + restante + " minutos para girar de nuevo.";
-        return;
-      }
-      localStorage.setItem("lastSpin", now);
+  let historial = JSON.parse(localStorage.getItem("historialGacha") || "[]");
+
+  if(cooldownActivo){
+    let lastSpin = localStorage.getItem("lastSpin");
+    let now = Date.now();
+    if(lastSpin && now - lastSpin < cooldownTiempo){
+      let restante = Math.ceil((cooldownTiempo - (now - lastSpin)) / 60000);
+      resultadoDiv.innerText = "⏳ Espera " + restante + " minutos para girar de nuevo.";
+      return;
     }
+    localStorage.setItem("lastSpin", Date.now());
+  }
 
-    // Animación tipo gacha
-    let vueltas = 20; 
-    let i = 0;
-    const animacion = setInterval(() => {
-      let randomItem = items[Math.floor(Math.random() * items.length)];
-      resultadoDiv.innerHTML = `<span class="${randomItem.rareza}">${randomItem.nombre}</span>`;
-      i++;
-      if(i >= vueltas){
-        clearInterval(animacion);
-        // Elegir resultado final según probabilidades y luck multiplier
-        let rand = Math.random();
-        let acumulado = 0;
-        let finalItem;
-        for(let item of items){
-          let probAjustada = item.prob * luckMultiplier;
-          acumulado += probAjustada;
-          if(rand <= acumulado){
-            finalItem = item;
-            break;
-          }
+  // Animación tipo gacha
+  let vueltas = 20;
+  let i = 0;
+  const animacion = setInterval(()=>{
+    let randomItem = items[Math.floor(Math.random() * items.length)];
+    resultadoDiv.innerHTML = `<span class="${randomItem.rareza}">${randomItem.nombre}</span>`;
+    i++;
+    if(i>=vueltas){
+      clearInterval(animacion);
+      let rand = Math.random();
+      let acumulado = 0;
+      let finalItem;
+      for(let item of items){
+        let probAjustada = item.prob * luckMultiplier;
+        acumulado += probAjustada;
+        if(rand <= acumulado){
+          finalItem = item;
+          break;
         }
-        if(!finalItem) finalItem = items[0]; // fallback
-        resultadoDiv.innerHTML = `🎁 Has obtenido: <span class="${finalItem.rareza}">${finalItem.nombre}</span> (${finalItem.rareza})`;
-
-        // Guardar en historial
-        historial.unshift({nombre: finalItem.nombre, rareza: finalItem.rareza, fecha: new Date().toLocaleString()});
-        localStorage.setItem("historialGacha", JSON.stringify(historial));
-        mostrarHistorial();
       }
-    }, 100);
-  }
+      if(!finalItem) finalItem = items[0];
+      resultadoDiv.innerHTML = `🎁 Has obtenido: <span class="${finalItem.rareza}">${finalItem.nombre}</span> (${finalItem.rareza})`;
+      historial.unshift({nombre: finalItem.nombre, rareza: finalItem.rareza, fecha: new Date().toLocaleString()});
+      localStorage.setItem("historialGacha", JSON.stringify(historial));
+      mostrarHistorial();
+    }
+  }, 100);
+}
 
-  function mostrarHistorial(){
-    let historial = JSON.parse(localStorage.getItem("historialGacha") || "[]");
-    let lista = document.getElementById("historial-list");
-    lista.innerHTML = "";
-    historial.forEach(item => {
-      let li = document.createElement("li");
-      li.innerHTML = `[${item.fecha}] <span class="${item.rareza}">${item.nombre}</span> (${item.rareza})`;
-      lista.appendChild(li);
-    });
-  }
+function mostrarHistorial(){
+  let historial = JSON.parse(localStorage.getItem("historialGacha") || "[]");
+  let lista = document.getElementById("historial-list");
+  lista.innerHTML = "";
+  historial.forEach(item=>{
+    let li = document.createElement("li");
+    li.innerHTML = `[${item.fecha}] <span class="${item.rareza}">${item.nombre}</span> (${item.rareza})`;
+    lista.appendChild(li);
+  });
+}
 
-  function abrirPanel(){
-    let pass = prompt("Inserta la contraseña:");
-    if(pass === "HolaXD"){
-      let opcion = prompt("Elige opción:\n1. x2 Luck\n2. x4 Luck\n3. x6 Luck\n4. x8 Luck\n5. Activar cooldown\n6. Desactivar cooldown");
-      switch(opcion){
-        case "1": luckMultiplier = 2; alert("Luck x2 activado"); break;
-        case "2": luckMultiplier = 4; alert("Luck x4 activado"); break;
-        case "3": luckMultiplier = 6; alert("Luck x6 activado"); break;
-        case "4": luckMultiplier = 8; alert("Luck x8 activado"); break;
-        case "5": cooldownActivo = true; alert("Cooldown activado"); break;
-        case "6": cooldownActivo = false; alert("Cooldown desactivado"); break;
-        default: alert("Opción inválida"); break;
-      }
+function abrirPanel(){
+  let pass = prompt("Inserta la contraseña:");
+  if(pass === "HolaXD"){
+    let opcion = prompt(
+      "Elige opción:\n"+
+      "1. x2 Luck\n2. x4 Luck\n3. x6 Luck\n4. x8 Luck\n"+
+      "5. Activar cooldown\n6. Desactivar cooldown\n"+
+      "7. Desactivar Gacha\n8. Activar Gacha\n9. Establecer Evento"
+    );
+    switch(opcion){
+      case "1": activarLuck(2); break;
+      case "2": activarLuck(4); break;
+      case "3": activarLuck(6); break;
+      case "4": activarLuck(8); break;
+      case "5": cooldownActivo = true; alert("Cooldown activado"); break;
+      case "6": cooldownActivo = false; alert("Cooldown desactivado"); break;
+      case "7": gachaActivo = false; alert("Gacha desactivado"); break;
+      case "8": gachaActivo = true; alert("Gacha activado"); break;
+      case "9":
+        let nombre = prompt("Nombre del evento:");
+        eventoNombre = nombre;
+        document.getElementById("eventoActivo").innerText = "Evento Activo: "+eventoNombre;
+        break;
+      default: alert("Opción inválida"); break;
+    }
+  } else alert("Contraseña incorrecta");
+}
+
+function activarLuck(mult){
+  luckMultiplier = mult;
+  luckEndTime = Date.now() + 10*60*1000; // duración 10 minutos por ejemplo
+  document.getElementById("luckActivo").innerText = `x${mult} Luck activo se acaba en 10:00`;
+  alert(`Luck x${mult} activado`);
+}
+
+// Actualizar contador de luck
+setInterval(()=>{
+  if(luckEndTime){
+    let restante = luckEndTime - Date.now();
+    if(restante > 0){
+      let min = Math.floor(restante/60000);
+      let seg = Math.floor((restante%60000)/1000);
+      document.getElementById("luckActivo").innerText = `x${luckMultiplier} Luck activo se acaba en ${min}:${seg<10?'0'+seg:seg}`;
     } else {
-      alert("Contraseña incorrecta");
+      luckMultiplier = 1;
+      luckEndTime = null;
+      document.getElementById("luckActivo").innerText = "";
     }
   }
+}, 1000);
 
-  window.onload = mostrarHistorial;
+window.onload = mostrarHistorial;
 </script>
 </body>
 </html>
