@@ -125,19 +125,19 @@ let girosSuerte = parseInt(localStorage.getItem("girosSuerte") || "0");
 
 // Probabilidades normales
 const items = [
-  { nombre: "Sticker", rareza: "Comun", prob: 0.7 },
-  { nombre: "Nada", rareza: "Comun", prob: 0.0 }, // opcional quitar "nada"
+  { nombre: "Sticker", rareza: "Comun", prob: 0.5 },
+  { nombre: "Nada", rareza: "Comun", prob: 0.7 }, // opcional quitar "nada"
   { nombre: "Ayuda con algo", rareza: "Raro", prob: 0.25 },
-  { nombre: "Objeto Mítico", rareza: "Mítico", prob: 0.049 },
-  { nombre: "Fruta Mítica", rareza: "FrutaMitica", prob: 0.001 }
+  { nombre: "Fruta Permanente En Invierno", rareza: "Mítico", prob: 0.049 },
+  { nombre: "Fruta Mítica", rareza: "Mítico", prob: 0.001 }
 ];
 
 // Probabilidades en giros de la suerte
 const itemsSuerte = [
-  { nombre: "Sticker Premium", rareza: "Comun", prob: 0.4 },
-  { nombre: "Ayuda Extra", rareza: "Raro", prob: 0.4 },
-  { nombre: "Objeto Mítico", rareza: "Mítico", prob: 0.18 },
-  { nombre: "Fruta Mítica", rareza: "FrutaMitica", prob: 0.02 }
+  { nombre: "Sticker", rareza: "Comun", prob: 0.4 },
+  { nombre: "Ayuda Con Algo", rareza: "Raro", prob: 0.4 },
+  { nombre: "Fruta Permanente En Invierno", rareza: "Mítico", prob: 0.18 },
+  { nombre: "Fruta Mítica", rareza: "Mítico", prob: 0.02 }
 ];
 
 function girar(esSuerte){
